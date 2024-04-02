@@ -1,0 +1,6 @@
+[submodule "SFML/Beginning-Cpp-Game-Programming-Second-Edition"]
+	path = SFML/Beginning-Cpp-Game-Programming-Second-Edition
+	url = git@github.com:PacktPublishing/Beginning-Cpp-Game-Programming-Second-Edition.git
+[submodule "SFML/Cpp-Game-Programming-Book"]
+	path = SFML/Cpp-Game-Programming-Book
+	url = git@github.com:GersonFeDutra/Cpp-Game-Programming-Book.git
