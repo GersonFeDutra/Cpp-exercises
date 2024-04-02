@@ -1,0 +1,6 @@
+*.o
+*.so
+*.out
+**bin
+**build
+**CMakeFiles
