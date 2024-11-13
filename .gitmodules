@@ -7,3 +7,6 @@
 [submodule "A-Tour-of-Cpp"]
 	path = A-Tour-of-Cpp
 	url = https://github.com/GersonFeDutra/A-Tour-of-Cpp
+[submodule "Math/Linear-Algebra"]
+	path = Math/Linear-Algebra
+	url = https://github.com/GersonFeDutra/Linear-Algebra
