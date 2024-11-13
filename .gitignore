@@ -8,3 +8,9 @@
 *cmake_install.cmake
 CMake/hello/Makefile
 *.zip
+Hello-World/HelloCMake/Makefile
+Hello-World/HelloCMake/HelloWorld.so.workspace
+Hello-World/HelloCMake/HelloWorld.so.project
+Hello-World/ex00_HelloWorld/HelloCMake/HelloWorld.so.project
+Hello-World/ex00_HelloWorld/HelloCMake/HelloWorld.so.workspace
+Hello-World/ex00_HelloWorld/HelloCMake/Makefile
