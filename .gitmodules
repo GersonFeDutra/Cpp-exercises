@@ -4,3 +4,6 @@
 [submodule "SFML/Cpp-Game-Programming-Book"]
 	path = SFML/Cpp-Game-Programming-Book
 	url = git@github.com:GersonFeDutra/Cpp-Game-Programming-Book.git
+[submodule "SFML/A-Tour-of-Cpp"]
+	path = SFML/A-Tour-of-Cpp
+	url = https://github.com/GersonFeDutra/A-Tour-of-Cpp
