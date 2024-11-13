@@ -4,3 +4,7 @@
 **bin
 **build
 **CMakeFiles
+*CMakeCache.txt
+*cmake_install.cmake
+CMake/hello/Makefile
+*.zip
