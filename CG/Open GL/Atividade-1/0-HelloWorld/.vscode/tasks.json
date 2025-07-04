@@ -16,7 +16,12 @@
       "presentation": {
         "reveal": "always",
         "panel": "shared",
-        "close": false
+        "close": false,
+        "showReuseMessage": true
+      },
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "coffee"
       }
     },
     {
@@ -34,7 +39,17 @@
         "kind": "test",
         "isDefault": false
       },
-      "problemMatcher": []
+      "problemMatcher": [],
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "triangle-right"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "close": true,
+        "showReuseMessage": false
+      }
     },
     {
       "label": "Build and Run app (WSL)",
@@ -47,7 +62,7 @@
       "dependsOrder": "sequence",
       "icon": {
         "color": "terminal.ansiCyan",
-        "id": "symbol-array"
+        "id": "debug-continue"
       },
       "problemMatcher": [],
       "presentation": {
