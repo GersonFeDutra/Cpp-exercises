@@ -1,0 +1,79 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build com WSL Bash integrado",
+      "type": "shell",
+      "command": "./build.sh",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "bash",
+          "args": ["-c"]
+        }
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "close": false,
+        "showReuseMessage": true
+      },
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "coffee"
+      }
+    },
+    {
+      "label": "Run app (WSL)",
+      "type": "shell",
+      "command": "./build/MyOpenGLApp",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "shell": {
+          "executable": "bash",
+          "args": ["-c"]
+        }
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "problemMatcher": [],
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "triangle-right"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "close": true,
+        "showReuseMessage": false
+      }
+    },
+    {
+      "label": "Build and Run app (WSL)",
+      "type": "shell",
+      "command": "echo Finished",
+      "dependsOn": [
+        "Build com WSL Bash integrado",
+        "Run app (WSL)"
+      ],
+      "dependsOrder": "sequence",
+      "icon": {
+        "color": "terminal.ansiCyan",
+        "id": "debug-continue"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true,
+        "close": true
+      }
+    }
+  ]
+}
