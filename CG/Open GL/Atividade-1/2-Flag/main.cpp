@@ -19,28 +19,65 @@ template <typename T>
 constexpr T M_TAU = static_cast<T>(2 * M_PI);
 
 struct Vec2 {
-    float x, y;
-    Vec2() : x(0), y(0) {} // implicit constructor
-    Vec2(float x, float y) : x(x), y(y) {}
-    Vec2(const Vec2& v) : x(v.x), y(v.y) {} // copy
-    Vec2(Vec2&& v) : x(v.x), y(v.y) {} // move
-    Vec2 operator/(float f) const { return {x / f, y / f}; }
-    Vec2 operator*(float f) const { return {x * f, y * f}; }
-    Vec2 operator+(Vec2 v) const { return {x + v.x, y + v.y}; }
-    Vec2 operator-(Vec2 v) const { return {x - v.x, y - v.y}; }
+    float x = 0.0f, y = 0.0f;
+
+    constexpr Vec2() = default;
+    // Construtores
+    constexpr Vec2(float x, float y) : x(x), y(y) {}
+
+    // Operadores aritméticos
+    constexpr Vec2 operator/(float f) const { return {x / f, y / f}; }
+    constexpr Vec2 operator*(float f) const { return {x * f, y * f}; }
+    constexpr Vec2 operator+(Vec2 v) const { return {x + v.x, y + v.y}; }
+    constexpr Vec2 operator-(Vec2 v) const { return {x - v.x, y - v.y}; }
+    Vec2& operator+=(Vec2 v) {
+        x += v.x;
+        y += v.y;
+        return *this;
+    }
+    Vec2& operator-=(Vec2 v) {
+        x -= v.x;
+        y -= v.y;
+        return *this;
+    }
+
+    inline float dot() {
+        return x * x + y * y;
+    }
 };
 
+
 struct Vec3 {
-    float x, y, z;
-    Vec3() : x(0), y(0), z(0) {} // implicit constructor
+    float x = 0.0f, y = 0.0f, z = 0.0f;
+
+    // Construtores
     Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
-    Vec3(const Vec3& v) : x(v.x), y(v.y), z(v.z) {} // copy
-    Vec3(Vec3&& v) : x(v.x), y(v.y), z(v.z) {} // move
+
+    // Operadores aritméticos
     Vec3 operator/(float f) const { return {x / f, y / f, z / f}; }
     Vec3 operator*(float f) const { return {x * f, y * f, z * f}; }
     Vec3 operator+(Vec3 v) const { return {x + v.x, y + v.y, z + v.z}; }
     Vec3 operator-(Vec3 v) const { return {x - v.x, y - v.y, z - v.z}; }
+    Vec3& operator+=(const Vec3 &v) {
+        x += v.x;
+        y += v.y;
+        z += v.z;
+        return *this;
+    }
+    Vec3& operator-=(const Vec3 &v) {
+        x -= v.x;
+        y -= v.y;
+        z -= v.z;
+        return *this;
+    }
+    inline float dot() {
+        return x * x + y * y + z * z;
+    }
+    inline Vec3 cross() {
+        return Vec3(y * z, z * x, x * y);
+    }
 };
+
 
 
 struct Color {
@@ -95,11 +132,14 @@ int init(void)
 // Referência para a construção matemática da bandeira: <https://youtu.be/yBjX9jLuLSY>
 void display()
 {
-    inline void genCircleAuto(Vec2 center, float radius, float quality = 1.5f, int min_offset = 12, int limit = 2048);
-    inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, std::size_t segmentsByArc);
-
-    inline void genSemiArcOverCircle( const Vec2& arcCenter, float innerRadius, float outerRadius,
-            const Vec2& circleCenter, float circleRadius, std::size_t segments = 64, std::size_t edgeSegments = 4);
+    inline void genCircleAuto(Vec2 center, float radius, float quality = 1.5f,
+            int min_offset = 12, int limit = 2048);
+    inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius,
+            float startAngle, float endAngle, std::size_t segmentsByArc);
+    inline void genSemiArcOverCircle(const Vec2& arcCenter, float innerRadius,
+            float outerRadius, const Vec2& circleCenter, float circleRadius,
+            std::size_t segments = 64, std::size_t edgeSegments = 4);
+    inline void genStar(const Vec2& center, float outerRadius, float innerRatio = 0.5f);
 
     /* Loop principal de desenho */
     glClear(GL_COLOR_BUFFER_BIT); // Limpa o buffer de cor
@@ -116,23 +156,102 @@ void display()
     glEnd();
 
     // Desenha o círculo da bandeira do Brasil
-    Vec2 center{FLAG_SIZE / 2.0f};
-    float radius = 3.5f;
+    static constexpr Vec2 CENTER{FLAG_SIZE / 2.0f};
+    static constexpr float RADIUS = 3.5f;
 
     glColor3ub(FlagColors::BLUE.r, FlagColors::BLUE.g, FlagColors::BLUE.b);
-    genCircleAuto(center, radius, 10.0f);
+    genCircleAuto(CENTER, RADIUS, 10.0f);
 
     // Desenha a faixa da bandeira, composta por arcos
     glColor3ub(FlagColors::WHITE.r, FlagColors::WHITE.g, FlagColors::WHITE.b);
-    Vec2 arcCenter{center.x - 2.0f, 0.0f};
-    genSemiArcOverCircle(
-        arcCenter,
-        8.0f,     // innerRadius
-        8.5f,     // outerRadius
-        center,   // circleCenter (10,7)
-        3.5f,     // circleRadius
-        32       // número de segmentos (suavidade)
+    Vec2 arcCenter{CENTER.x - 2.0f, 0.0f};
+    genSemiArcOverCircle( arcCenter,
+        8.0f, 8.5f, // radius: inner, outer
+        CENTER, 3.5f,
+        32        // número de segmentos (suavidade)
     );
+
+    Vec2 starCoords = CENTER;
+    starCoords.y -= 0.5;
+
+    inline void randomizeColor();
+    static constexpr float starSizes[] = {.21f, .17f, .13f, .1f, .08f};
+    struct Star {
+        const float CELL_SCALAR = RADIUS / 10.4f;
+        float radius;
+        Vec2 coords;
+
+        /**
+         * @param size Tamanho da estrela (1-5), referente às posições em starSizes.
+         * @param radialCoords Coordenadas em relação ao centro do mapa, numa grade de 1/9.5 do raio por quadrante.
+         * Referência: <https://upload.wikimedia.org/wikipedia/commons/b/be/Flag_of_Brazil_%28dimensions%29.svg>.
+         */
+        Star(uint8_t size, Vec2 radialCoords) : radius(radius), coords(radialCoords) {
+            float radius = starSizes[size - 1];
+
+            coords.y -= 0.5f;
+            coords = CENTER + coords * CELL_SCALAR;
+            genStar(coords, radius, 0.45f);
+        }
+    };
+    /* Estrelas da bandeira do Brasil */
+    // Referências: <https://pt.wikipedia.org/wiki/Bandeira_do_Brasil#/media/Ficheiro:Flag_of_Brazil_(sphere).svg> (estrelas)
+    // <https://pt.wikipedia.org/wiki/Bandeira_do_Brasil#/media/Ficheiro:Brazil_flag_stars.svg> (constelações)
+
+    //randomizeColor();
+    // Virgo
+    Star spica(1, {3, 4}); // Pará
+
+    //randomizeColor();
+    // Hydra
+    Star dhanabAlShuja(3, {2.25f, 1.25f}); // Acre
+    Star alphard(2, {-3.75f, -.75f}); // Mato Grosso do Sul
+
+    //randomizeColor();
+    // Scorpius
+    Star graffias(3, {8.25f, -3.75f}); // Maranhão
+    Star antares(1, {6.75f, -3.75f}); // Piauí
+    Star wei(2, {7.25f, -4.75f}); // Ceará
+    Star shaula(2, {6.75f, -5.4f}); // Rio Grande do Norte
+    //randomizeColor();
+    Star girtab(3, {5.75f, -5.75f}); // Paraiba
+    Star denebakrab(3, {4.75f, -5.75f}); // Pernambuco
+    Star sargas(2, {4.75f, -6.75f}); // Alagoas
+    Star apollyon(3, {4.75f, -7.75f}); // Sergipe
+
+    //randomizeColor();
+    // Triangulum Australe
+    Star deltaTrianguliAustralis(3, {3.75f, -6}); // Santa Catarina
+    Star atria(2, {2.75f, -7}); // Rio Grande do Sul
+    Star gamaTrianguliAustralis(3, {2, -5.75f}); // Paraná
+
+    //randomizeColor();
+    // Octans
+    Star polarisAustralis(5, {0, -8}); // Distrito Federal
+
+    //randomizeColor();
+    // Crux
+    Star acrux(1, {0, -4.8f}); // São Paulo
+    Star mimosa(2, {1, -2.9f}); // Rio de Janeiro
+    Star intrometida(4, {0.5f, -3.5f}); // Espirito Santo
+    Star palida(3, {-1.25f, -3}); // Minas Gerais
+    Star gacrux(2, {.15f, -2}); // Bahia
+
+    //randomizeColor();
+    // Carina
+    Star canopus(1, {-4, -5.75f}); // Goiás
+
+    //randomizeColor();
+    // Canis Major
+    Star adhara(3, {-5.25f, -4.75f}); // Tocantins
+    Star wezen(2, {-5, -3.8f}); // Roraima
+    Star mirzam(2, {-8, -3.6f}); // Amapá
+    Star sirius(1, {-7, -2.8f}); // Mato Grosso
+    Star muliphen(4, {-6.15f, -2.15f}); // Rondônia
+
+    //randomizeColor();
+    // Canis Minor
+    Star procyon(1, {-7.8f, 1.2f}); // Amazonas
 
     glFlush(); // desenha comandos não executados, forçando sua execução em tempo finito
 }
@@ -155,7 +274,11 @@ int main(int argc, char** argv) {
 }
 
 
-/* Generates a circle in Open GL frame buffer */
+/** Generates a circle in Open GL frame buffer
+ * @param center Posição do círculo, em relação ao centro
+ * @param radius Raio do círculo
+ * @param segments "Resolução"/ quantidade de segmentos do polígono gerado
+ */
 inline void genCircle(Vec2 center, float radius, std::size_t segments) {
     glBegin(GL_POLYGON); // Inicializa o desenho de um polígono
     float x, y;
@@ -172,10 +295,11 @@ inline void genCircle(Vec2 center, float radius, std::size_t segments) {
     glEnd();
 }
 
-/* Gera um semi-círculo em Open GL frame buffer
- * segmentsByArc: quantidade de segmentos em cada arco (interno e externo)
+/** Gera um semi-círculo em Open GL frame buffer
+ * @param segmentsByArc quantidade de segmentos em cada arco (interno e externo)
  */
-inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius, float startAngle, float endAngle, std::size_t segmentsByArc) {
+inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius,
+        float startAngle, float endAngle, std::size_t segmentsByArc) {
     glBegin(GL_LINE_LOOP); // Inicializa o desenho de um polígono
     float x, y;
     float offset = (endAngle - startAngle) / segmentsByArc;
@@ -210,15 +334,10 @@ inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius, float 
  * de um centro arcCenter, mas somente o trecho que fica DENTRO do círculo
  * (circleCenter, circleRadius).
  */
-inline void genSemiArcOverCircle(
-    const Vec2& arcCenter,
-    float innerRadius,
-    float outerRadius,
-    const Vec2& circleCenter,
-    float circleRadius,
-    std::size_t segments    = 64,
-    std::size_t edgeSegments = 4
-) {
+inline void genSemiArcOverCircle(const Vec2& arcCenter, float innerRadius,
+        float outerRadius, const Vec2& circleCenter, float circleRadius,
+        std::size_t segments    = 64, std::size_t edgeSegments = 4)
+{
     // 1) distância e direção entre centros
     float dx = circleCenter.x - arcCenter.x;
     float dy = circleCenter.y - arcCenter.y;
@@ -308,11 +427,38 @@ inline void genSemiArcOverCircle(
 }
 
 
+/**
+ * Desenha uma estrela regular de 5 pontas.
+ * @param center Centro da estrela
+ * @param outerRadius Raio externo (pontas)
+ * @param innerRatio Razão do raio interno (entre 0 e 1)
+ */
+inline void genStar(const Vec2& center, float outerRadius, float innerRatio) {
+    constexpr int numPoints = 5;
+    float innerRadius = outerRadius * std::clamp(innerRatio, 0.0f, 1.0f);
 
-/* Gera um círculo com base na qualidade.
- * quality: Fator de suavidade ajustável. Quanto maior, mais segmentos.
- * min_offset: Quantidade mínima de segmentos.
- * limit: Quantidade máxima de segmentos.
+    glBegin(GL_TRIANGLE_FAN);
+        // Centro do fan
+        glVertex2f(center.x, center.y);
+
+        // Gera os vértices alternando externo e interno
+        for (int i = 0; i <= numPoints * 2; ++i) {
+            float angle = M_PI / 2 - i * (M_PI / numPoints); // começa pra cima
+            float radius = (i % 2 == 0) ? outerRadius : innerRadius;
+
+            float x = center.x + radius * std::cos(angle);
+            float y = center.y + radius * std::sin(angle);
+
+            glVertex2f(x, y);
+        }
+    glEnd();
+}
+
+
+/** Gera um círculo com base na qualidade.
+ * @param quality Fator de suavidade ajustável. Quanto maior, mais segmentos.
+ * @param min_offset Quantidade mínima de segmentos.
+ * @param limit Quantidade máxima de segmentos.
  */
 inline void genCircleAuto(Vec2 center, float radius, float quality = 1.5f, int min_offset = 12, int limit = 2048) {
     int segs = int(quality * radius) + min_offset; // Valor base linear + offset mínimo
@@ -322,4 +468,14 @@ inline void genCircleAuto(Vec2 center, float radius, float quality = 1.5f, int m
 
 inline void genCircleAuto(float x, float y, float radius, float quality = 1.5f, int min_offset = 12, int limit = 2048) {
     genCircleAuto({x, y}, radius, quality, min_offset, limit);
+}
+
+
+inline void randomizeColor()
+{
+    glColor3ub(
+        (std::rand() % 256),
+        (std::rand() % 256),
+        (std::rand() % 256)
+    );
 }
