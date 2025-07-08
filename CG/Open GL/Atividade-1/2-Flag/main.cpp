@@ -13,10 +13,16 @@
 
 #include <cstdlib> // Inclui algumas convenções do C
 #include <cmath> // Inclui algumas funções matemáticas básicas
+#include <cstring> // Manipulação de cadeias de caracteres
 #include <algorithm> // std::clamp
+#include <random>
+
 
 template <typename T>
-constexpr T M_TAU = static_cast<T>(2 * M_PI);
+constexpr T TAU = static_cast<T>(2 * M_PI);
+
+template <typename T>
+constexpr T PI = static_cast<T>(M_PI);
 
 struct Vec2 {
     float x = 0.0f, y = 0.0f;
@@ -99,6 +105,7 @@ const Color FlagColors::YELLOW{255, 203, 0};
 const Color FlagColors::BLUE{48, 38, 129};
 const Color FlagColors::WHITE{255, 255, 255};
 
+
 //#define _ENABLE_ZOOM 1 // para debug
 
 
@@ -140,6 +147,8 @@ void display()
             float outerRadius, const Vec2& circleCenter, float circleRadius,
             std::size_t segments = 64, std::size_t edgeSegments = 4);
     inline void genStar(const Vec2& center, float outerRadius, float innerRatio = 0.5f);
+    void drawArcText(const char* text, float radius, float startAngle, float arcAngle, float scale);
+    std::pair<float, float> computeArcAngles(const Vec2& arcCenter, float radius, const Vec2& circleCenter, float circleRadius);
 
     /* Loop principal de desenho */
     glClear(GL_COLOR_BUFFER_BIT); // Limpa o buffer de cor
@@ -164,9 +173,10 @@ void display()
 
     // Desenha a faixa da bandeira, composta por arcos
     glColor3ub(FlagColors::WHITE.r, FlagColors::WHITE.g, FlagColors::WHITE.b);
-    Vec2 arcCenter{CENTER.x - 2.0f, 0.0f};
+    const Vec2 arcCenter{CENTER.x - 2.0f, 0.0f};
+    const float arcInnerRadius = 8.0f, arcOuterRadius = 8.5f;
     genSemiArcOverCircle( arcCenter,
-        8.0f, 8.5f, // radius: inner, outer
+        arcInnerRadius, arcOuterRadius, // radius: inner, outer
         CENTER, 3.5f,
         32        // número de segmentos (suavidade)
     );
@@ -253,8 +263,23 @@ void display()
     // Canis Minor
     Star procyon(1, {-7.8f, 1.2f}); // Amazonas
 
+    /* Texto da faixa */ 
+    glColor3ub(FlagColors::GREEN.r, FlagColors::GREEN.g, FlagColors::GREEN.b);
+    glPushMatrix();
+
+    const float midRadius = (arcInnerRadius + arcOuterRadius) / 2.0f; // raio médio da faixa
+    // Calcular ângulos do arco visível
+    auto [startAngle, endAngle] = computeArcAngles(arcCenter, midRadius, CENTER, RADIUS);
+
+    glTranslatef(arcCenter.x, arcCenter.y, 0.0f); // Centralizar no centro do arco
+
+    // Desenhar texto na faixa
+    drawArcText("ORDEM E PROGRESSO", midRadius - 0.22f, endAngle, startAngle, 0.004f);
+    glPopMatrix();
+
     glFlush(); // desenha comandos não executados, forçando sua execução em tempo finito
 }
+
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv); // Inicializa o GLUT
@@ -282,7 +307,7 @@ int main(int argc, char** argv) {
 inline void genCircle(Vec2 center, float radius, std::size_t segments) {
     glBegin(GL_POLYGON); // Inicializa o desenho de um polígono
     float x, y;
-    float offset = M_TAU<float> / segments;
+    float offset = TAU<float> / segments;
     float angle = 0.0f; // current angle in radians
     for (std::size_t i = 0; i < segments; i++) {
         // define a coordenada de cada ponto no perímetro do círculo
@@ -328,7 +353,6 @@ inline void genSemiArc(Vec2 center, float innerRadius, float outerRadius,
     glEnd();
 }
 
-#include <random>
 /**
  * Gera um "anel" parcial (faixa) entre dois raios (innerRadius, outerRadius)
  * de um centro arcCenter, mas somente o trecho que fica DENTRO do círculo
@@ -443,7 +467,7 @@ inline void genStar(const Vec2& center, float outerRadius, float innerRatio) {
 
         // Gera os vértices alternando externo e interno
         for (int i = 0; i <= numPoints * 2; ++i) {
-            float angle = M_PI / 2 - i * (M_PI / numPoints); // começa pra cima
+            float angle = PI<float> / 2 - i * (PI<float> / numPoints); // começa pra cima
             float radius = (i % 2 == 0) ? outerRadius : innerRadius;
 
             float x = center.x + radius * std::cos(angle);
@@ -478,4 +502,81 @@ inline void randomizeColor()
         (std::rand() % 256),
         (std::rand() % 256)
     );
+}
+
+
+/* Função para calcular o ângulo médio do arco visível */
+std::pair<float, float> computeArcAngles(const Vec2& arcCenter, float radius, const Vec2& circleCenter, float circleRadius)
+{
+    // 1. Calcular vetor entre centros
+    float dx = circleCenter.x - arcCenter.x;
+    float dy = circleCenter.y - arcCenter.y;
+    float d = std::sqrt(dx*dx + dy*dy);
+
+    // 2. Calcular ângulo de direção entre centros
+    float phi = std::atan2(dy, dx);
+
+    // 3. Calcular ângulo de abertura usando lei dos cossenos
+    float cosAlpha = (d * d + radius * radius - circleRadius * circleRadius) / (2.0f * d * radius);
+    cosAlpha = std::clamp(cosAlpha, -1.0f, 1.0f);
+    float alpha = std::acos(cosAlpha);
+
+    return {phi - alpha, phi + alpha};
+}
+
+
+void drawArcText(const char* text, float radius, float startAngle, float endAngle, float scale)
+{
+    if (!text || *text == '\0') return;
+
+    // Calcular ângulo total e direção
+    float arcAngle = endAngle - startAngle;
+    bool clockwise = (arcAngle < 0);
+    float absArcAngle = std::abs(arcAngle);
+
+    // Pré-calcular largura total do texto (unscaled)
+    float totalWidth = 0;
+    for (const char* c = text; *c; c++) {
+        totalWidth += glutStrokeWidth(GLUT_STROKE_ROMAN, *c);
+    }
+    if (totalWidth <= 0) return;
+
+    float cumulativeWidth = 0;
+
+    for (const char* c = text; *c; c++) {
+        float charWidth = glutStrokeWidth(GLUT_STROKE_ROMAN, *c);
+        // Cálculo do ângulo para este caractere
+        float charAngle;
+        float t = (cumulativeWidth + charWidth / 2) / totalWidth;
+
+        if (clockwise) {
+            charAngle = startAngle - t * absArcAngle;
+        } else {
+            charAngle = startAngle + t * absArcAngle;
+        }
+
+        glPushMatrix();
+        // Posicionar no ponto do arco
+        float x = radius * cos(charAngle);
+        float y = radius * sin(charAngle);
+        glTranslatef(x, y, 0);
+
+        // Orientação para caracteres "em pé"
+        float rotation = (charAngle + PI<float> / 2) * 180.0f / PI<float>;
+
+        // Ajuste para orientação correta
+        if (clockwise) rotation += 180.0f;
+
+        glRotatef(rotation, 0, 0, 1);
+
+        // Centralização
+        glTranslatef(-0.38f * charWidth * scale, 0.05f * charWidth * scale, 0);
+        glScalef(scale, scale, scale);
+
+        // Renderizar caractere
+        glutStrokeCharacter(GLUT_STROKE_ROMAN, *c);
+        glPopMatrix();
+
+        cumulativeWidth += charWidth;
+    }
 }
