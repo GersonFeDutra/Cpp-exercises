@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C++: clang++ build active file",
+			"command": "/usr/sbin/clang++",
+			"args": [
+				"-fcolor-diagnostics",
+				"-fansi-escape-codes",
+				"-g",
+				"${workspaceFolder}/*.cpp",
+				"-o",
+				"${workspaceFolder}/.bin/cumpiler.out"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: /usr/sbin/clang++",
+			"icon": {
+				"color": "terminal.ansiCyan",
+				"id": "circuit-board"
+			}
+		}
+	]
+}
