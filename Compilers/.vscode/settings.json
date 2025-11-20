@@ -1,6 +1,11 @@
 {
     "files.associations": {
         "cstdlib": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "print": "cpp",
+        "ostream": "cpp",
+        "any": "cpp",
+        "optional": "cpp",
+        "variant": "cpp"
     }
 }

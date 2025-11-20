@@ -3,12 +3,14 @@
 	"tasks": [
 		{
 			"type": "cppbuild",
-			"label": "C++: clang++ build active file",
+			"label": "C++23 [debug]: clang++ build active file",
 			"command": "/usr/sbin/clang++",
 			"args": [
+				"-std=c++23",
 				"-fcolor-diagnostics",
 				"-fansi-escape-codes",
 				"-g",
+				"-Wall",
 				"${workspaceFolder}/*.cpp",
 				"-o",
 				"${workspaceFolder}/.bin/cumpiler.out"

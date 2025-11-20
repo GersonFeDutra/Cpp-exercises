@@ -2,22 +2,32 @@
 
 #include <istream>
 #include <ostream>
+#include <format>
 
 //using namespace std::string_literals;
 
 /** Custom Exception: SyntaxError
  * @brief Throws when this compiler encounters a syntax error in the input source.
+ *
+ * @note For a real project, we don't recommend the use of exceptions
+ *       (reason is overhead). It's here just for educational purposes.
  **/
 class SyntaxError : public std::exception
 {
+    std::string message;
 public:
-    virtual const char* what() noexcept
+    SyntaxError(const char* message = "") :
+        message(std::format("[Syntax Error] {}", message)) {}
+    SyntaxError(std::string message) :
+        message(std::format("[Syntax Error] {}", message)) {}
+
+    virtual const char* what() const noexcept
     {
-        return "Syntax Error";
+        return message.c_str();
     }
 };
 
-
+template <bool no_optimize>
 class Parser
 {
     std::istream& source;
@@ -25,6 +35,7 @@ class Parser
     std::string word;
     size_t position = 0;
     char lookahead;
+    int accumulator = 0;
 public:
     Parser(std::istream& source, std::ostream& translation) : source(source), translation(translation) {}
     ~Parser() {
@@ -50,42 +61,57 @@ public:
         if (t == lookahead)
             lookahead = get_next_char();
         else
-            throw SyntaxError();
+            throw SyntaxError(std::format("Expected '{}', got '{}' instead.", t, lookahead));
     }
 
     /* Regra: digit -> digit { print(digit) } */
-    inline void digit() {
+    inline int digit() {
+        int value = 0;
         if (isdigit(lookahead)) {
-            translation << lookahead << std::flush;
-            match(lookahead);
+            value = lookahead - '0';
+            while (isdigit(lookahead = get_next_char())) {
+                value *= 10;
+                value += lookahead - '0';
+            }
         }
         else
-            throw SyntaxError();
+            throw SyntaxError(std::format("Expected a digit. Got '{}' instead.", lookahead));
+
+        if constexpr(no_optimize)
+            translation << value << std::flush;
+        return value;
     }
 
-    /* Regra: expr -> digit oper */
+    /** Regra: expr -> digit oper.
+     * @note if no_optimize is false, the translator will use the accumulator.
+     **/
     inline void expr() {
-        digit();
+        accumulator = digit();
         for (;;) {
             switch (lookahead)
             {
             /* Regra: oper -> + digit { print(+) } oper */
             case '+': {
                 match('+');
-                digit();
-                translation << '+' << std::flush; // flushing enabled (may be slow)
+                accumulator += digit();
+                if constexpr(no_optimize)
+                    translation << '+' << std::flush; // flushing enabled (may be slow)
             } break;
 
             /* # Regra: oper -> - digit { print(-) } oper */
             case '-': {
                 match('-');
-                digit();
-                translation << '-' << std::flush;
+                accumulator -= digit();
+                if constexpr(no_optimize)
+                    translation << '-' << std::flush;
             } break;
 
             /* Produção vazia (return) */
             default:
-                translation << '\n' << std::flush;
+                if constexpr(no_optimize)
+                    translation << std::endl;
+                else
+                    translation << accumulator << std::endl;
                 return;
             }
         }

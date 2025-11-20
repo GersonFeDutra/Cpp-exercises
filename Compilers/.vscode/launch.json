@@ -31,7 +31,7 @@
                 "group": "build",
                 "order": 1
             },
-            "preLaunchTask": "C++: clang++ build active file"
+            "preLaunchTask": "C++23 [debug]: clang++ build active file"
         }
     ],
     "compounds": []
